@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { authService } from '../services/authService';
 import type { User } from '../types/api';
 
@@ -17,7 +18,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user on mount if token exists
   useEffect(() => {
     const loadUser = async () => {
       if (authService.isAuthenticated()) {
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name?: string) => {
-    const newUser = await authService.register({ email, password, name });
+    await authService.register({ email, password, name });
     await login(email, password);
   };
 

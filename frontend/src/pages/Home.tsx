@@ -1,33 +1,77 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { contentService } from '../services/contentService';
+import { ContentSwiper } from '../components/ContentSwiper';
+import type { Post } from '../types/api';
 
 export function Home() {
-  const { user, logout } = useAuth();
+  const { logout, user } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    console.log('Home mounted, user:', user);
+    loadContent();
+  }, []);
+
+  const loadContent = async () => {
+    console.log('Starting loadContent...');
+    
+    try {
+      console.log('Calling contentService.getNew(20)...');
+      const data = await contentService.getNew(20);
+      console.log('Received data:', data);
+      console.log('Number of posts:', data.length);
+      setPosts(data);
+    } catch (err: any) {
+      console.error('ERROR loading content:', err);
+      console.error('Error response:', err.response);
+      setError(err.message || 'Failed to load content');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  console.log('Render - loading:', loading, 'posts:', posts.length, 'error:', error);
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-black">
+        <div className="text-white text-xl">Loading content...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-black text-white">
+        <p className="text-xl mb-4">Error: {error}</p>
+        <button onClick={loadContent} className="bg-blue-500 px-6 py-3 rounded-lg">Retry</button>
+        <button onClick={logout} className="mt-4 bg-red-500 px-6 py-3 rounded-lg">Logout</button>
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-black text-white">
+        <p className="text-xl mb-4">No posts found</p>
+        <button onClick={loadContent} className="bg-blue-500 px-6 py-3 rounded-lg">Reload</button>
+        <button onClick={logout} className="mt-4 bg-red-500 px-6 py-3 rounded-lg">Logout</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Welcome to Wishscroll</h1>
-              <p className="text-gray-600">Hello, {user?.name || user?.email}!</p>
-            </div>
-            <button
-              onClick={logout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold mb-2">Coming Soon!</h2>
-          <p className="text-gray-700">
-            Content swiper will be here (Issue #33)
-          </p>
-        </div>
-      </div>
-    </div>
+    <>
+      <button
+        onClick={logout}
+        className="absolute top-4 right-4 z-50 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm shadow-lg"
+      >
+        Logout
+      </button>
+      <ContentSwiper posts={posts} onLoadMore={loadContent} />
+    </>
   );
 }
